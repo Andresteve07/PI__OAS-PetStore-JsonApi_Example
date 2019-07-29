@@ -1,0 +1,260 @@
+"$schema": http://json-schema.org/draft-06/schema#
+JsonApi:
+  title: JSON:API Schema
+  description: This is a schema for responses in the JSON:API format. For more, see
+    http://jsonapi.org
+  oneOf:
+  - $ref: '#/components/schemas/JsonApiSuccess'
+  - $ref: '#/components/schemas/JsonApiFailure'
+  - $ref: '#/components/schemas/JsonApiInfo'
+JsonApiSuccess:
+  type: object
+  required:
+  - data
+  properties:
+    data:
+      $ref: '#/components/schemas/JsonApiData'
+    included:
+      description: To reduce the number of HTTP requests, servers **MAY** allow
+        responses that include related resources along with the requested primary
+        resources. Such responses are called "compound documents".
+      type: array
+      items:
+        $ref: '#/components/schemas/JsonApiResource'
+      uniqueItems: true
+    meta:
+      $ref: '#/components/schemas/JsonApiMeta'
+    links:
+      description: Link members related to the primary data.
+      allOf:
+      - $ref: '#/components/schemas/JsonApiLinks'
+      - $ref: '#/components/schemas/JsonApiPagination'
+    jsonapi:
+      $ref: '#/components/schemas/JsonApiImpl'
+  additionalProperties: false
+JsonApiFailure:
+  type: object
+  required:
+  - errors
+  properties:
+    errors:
+      type: array
+      items:
+        $ref: '#/components/schemas/JsonApiError'
+      uniqueItems: true
+    meta:
+      $ref: '#/components/schemas/JsonApiMeta'
+    jsonapi:
+      $ref: '#/components/schemas/JsonApiImpl'
+    links:
+      $ref: '#/components/schemas/JsonApiLinks'
+  additionalProperties: false
+JsonApiInfo:
+  type: object
+  required:
+  - meta
+  properties:
+    meta:
+      $ref: '#/components/schemas/JsonApiMeta'
+    links:
+      $ref: '#/components/schemas/JsonApiLinks'
+    jsonapi:
+      $ref: '#/components/schemas/JsonApiImpl'
+  additionalProperties: false
+JsonApiMeta:
+  description: Non-standard meta-information that can not be represented as an attribute or relationship.
+  type: object
+  additionalProperties: true
+JsonApiData:
+  description: The document's "primary data" is a representation of the resource or collection of resources targeted by a request. Can be null if the request is one that might correspond to a single resource, but doesn't currently.
+  nullable: true
+  oneOf:
+  - $ref: '#/components/schemas/JsonApiResource'
+  - description: An array of resource objects, an array of resource identifier objects, or an empty array ([]), for requests that target resource collections.
+    type: array
+    items:
+      $ref: '#/components/schemas/JsonApiResource'
+    uniqueItems: true
+JsonApiResource:
+  description: '"Resource objects" appear in a JSON:API document to represent resources.'
+  type: object
+  required:
+  - type
+  - id
+  properties:
+    type:
+      type: string
+    id:
+      type: string
+    attributes:
+      $ref: '#/components/schemas/JsonApiAttributes'
+    relationships:
+      $ref: '#/components/schemas/JsonApiRelationships'
+    links:
+      $ref: '#/components/schemas/JsonApiLinks'
+    meta:
+      $ref: '#/components/schemas/JsonApiMeta'
+  additionalProperties: false
+JsonApiRelationshipLinks:
+  description: A resource object **MAY** contain references to other resource objects
+    ("relationships"). Relationships may be to-one or to-many. Relationships can
+    be specified by including a member in a resource's links object.
+  type: object
+  properties:
+    self:
+      description: A `self` member, whose value is a URL for the relationship itself
+        (a "relationship URL"). This URL allows the client to directly manipulate
+        the relationship. For example, it would allow a client to remove an `author`
+        from an `article` without deleting the people resource itself.
+      $ref: '#/components/schemas/JsonApiLink'
+    related:
+      $ref: '#/components/schemas/JsonApiLink'
+  additionalProperties: true
+JsonApiLinks:
+  type: object
+  additionalProperties:
+    $ref: '#/components/schemas/JsonApiLink'
+JsonApiLink:
+  description: 'A link **MUST** be represented as either: a string containing the
+    link''s URL or a link object.'
+  oneOf:
+  - description: A string containing the link's URL.
+    type: string
+    format: uri-reference
+  - type: object
+    required:
+    - href
+    properties:
+      href:
+        description: A string containing the link's URL.
+        type: string
+        format: uri-reference
+      meta:
+        $ref: '#/components/schemas/JsonApiMeta'
+JsonApiAttributes:
+  description: Members of the attributes object ("attributes") represent information about the resource object in which it's defined. MUST NOT have properties named relationships, links, id, or type.
+  type: object
+  additionalProperties: false
+JsonApiRelationships:
+  description: Members of the relationships object ("relationships") represent references
+    from the resource object in which it's defined to other resource objects. MUST NOT contain properties named id or type.
+  type: object
+  properties:
+    links:
+      $ref: '#/components/schemas/JsonApiRelationshipLinks'
+    data:
+      description: Member, whose value represents "resource linkage".
+      oneOf:
+      - $ref: '#/components/schemas/JsonApiRelationshipToOne'
+      - $ref: '#/components/schemas/JsonApiRelationshipToMany'
+    meta:
+      $ref: '#/components/schemas/JsonApiMeta'
+  anyOf:
+  - required:
+    - data
+  - required:
+    - meta
+  - required:
+    - links
+    additionalProperties: false
+  additionalProperties: false
+JsonApiRelationshipToOne:
+  description: References to other resource objects in a to-one ("relationship").
+    Relationships can be specified by including a member in a resource's links object.
+  anyOf:
+  - $ref: '#/components/schemas/JsonApiEmpty'
+  - $ref: '#/components/schemas/JsonApiLinkage'
+JsonApiRelationshipToMany:
+  description: An array of objects each containing "type" and "id" members for to-many
+    relationships.
+  type: array
+  items:
+    $ref: '#/components/schemas/JsonApiLinkage'
+  uniqueItems: true
+JsonApiEmpty:
+  description: Describes an empty to-one relationship.
+  nullable: true
+JsonApiLinkage:
+  description: The "type" and "id" to non-empty members.
+  type: object
+  required:
+  - type
+  - id
+  properties:
+    type:
+      type: string
+    id:
+      type: string
+    meta:
+      $ref: '#/components/schemas/JsonApiMeta'
+  additionalProperties: false
+JsonApiPagination:
+  type: object
+  properties:
+    first:
+      description: The first page of data
+      type: string
+      format: uri-reference
+      nullable: true
+    last:
+      description: The last page of data
+      type: string
+      format: uri-reference
+      nullable: true
+    prev:
+      description: The previous page of data
+      type: string
+      format: uri-reference
+      nullable: true
+    next:
+      description: The next page of data
+      type: string
+      format: uri-reference
+      nullable: true
+JsonApiImpl:
+  description: An object describing the server's implementation
+  type: object
+  properties:
+    version:
+      type: string
+    meta:
+      $ref: '#/components/schemas/JsonApiMeta'
+  additionalProperties: false
+JsonApiError:
+  type: object
+  properties:
+    id:
+      description: A unique identifier for this particular occurrence of the problem.
+      type: string
+    links:
+      $ref: '#/components/schemas/JsonApiLinks'
+    status:
+      description: The HTTP status code applicable to this problem, expressed as
+        a string value.
+      type: string
+    code:
+      description: An application-specific error code, expressed as a string value.
+      type: string
+    title:
+      description: A short, human-readable summary of the problem. It **SHOULD NOT**
+        change from occurrence to occurrence of the problem, except for purposes
+        of localization.
+      type: string
+    detail:
+      description: A human-readable explanation specific to this occurrence of the
+        problem.
+      type: string
+    source:
+      type: object
+      properties:
+        pointer:
+          description: A JSON Pointer [RFC6901] to the associated entity in the
+            request document [e.g. "/data" for a primary data object, or "/data/attributes/title"
+            for a specific attribute].
+          type: string
+        parameter:
+          description: A string indicating which query parameter caused the error.
+          type: string
+    meta:
+      $ref: '#/components/schemas/JsonApiMeta'
+  additionalProperties: false
